@@ -83,13 +83,15 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight text-white">Aura</h1>
-              <span className="text-[11px] px-2 py-0.5 font-medium rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                IA Asistente
+              <h1 className="text-lg font-bold tracking-tight text-white">
+                Aura <span className="text-[#8490A0] font-normal text-sm">· {phone.model}</span>
+              </h1>
+              <span className="text-[10px] px-2 py-0.5 font-semibold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                {phone.isCharging ? `⚡ ${phone.batteryLevel}%` : `${phone.batteryLevel}%`}
               </span>
             </div>
             <p className="text-xs text-[#8490A0] font-normal hidden sm:block">
-              Asistente Personal de Productividad y Teléfono Android
+              Asistente de {phone.model} {phone.isCharging ? '(Cargando)' : ''}
             </p>
           </div>
         </div>

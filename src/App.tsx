@@ -31,6 +31,7 @@ import {
 } from './data/initialState';
 import { SpeechHandler } from './utils/speech';
 import { processLocalAssistant } from './utils/localAssistant';
+import { detectDeviceModel, initRealBatteryListener } from './utils/deviceDetector';
 import { Header } from './components/Header';
 import { AssistantView } from './components/AssistantView';
 import { TasksView } from './components/TasksView';
@@ -113,6 +114,31 @@ export default function App() {
 
   // Speech handler reference
   const speechHandlerRef = useRef<SpeechHandler | null>(null);
+
+  // Auto-detect real phone model & real battery/charging on device
+  useEffect(() => {
+    // Detect device model name from hardware/browser
+    const realModel = detectDeviceModel();
+    if (realModel) {
+      setPhone((prev) => ({
+        ...prev,
+        model: prev.model && prev.model !== 'Google Pixel 8 Pro' ? prev.model : realModel,
+      }));
+    }
+
+    // Subscribe to real battery level and charging events
+    const unsubscribeBattery = initRealBatteryListener((batteryLevel, isCharging) => {
+      setPhone((prev) => ({
+        ...prev,
+        batteryLevel,
+        isCharging,
+      }));
+    });
+
+    return () => {
+      unsubscribeBattery();
+    };
+  }, []);
 
   // Sync to localStorage
   useEffect(() => {
