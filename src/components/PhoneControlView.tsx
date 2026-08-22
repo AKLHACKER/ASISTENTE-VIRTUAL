@@ -46,7 +46,57 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
 }) => {
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [testNotificationText, setTestNotificationText] = useState('');
-  const [showMacroGuide, setShowMacroGuide] = useState(false);
+  const [showMacroGuide, setShowMacroGuide] = useState(true);
+  const [macroUrl, setMacroUrl] = useState(() => {
+    return localStorage.getItem('aura_macrodroid_url') || 'https://trigger.macrodroid.com/7e08d103-de70-4d66-a0a2-e67ed3a624fb/aura_comando';
+  });
+  const [triggerStatus, setTriggerStatus] = useState<string | null>(null);
+  const [isTriggering, setIsTriggering] = useState(false);
+
+  // Save macro URL to localStorage
+  const handleSaveMacroUrl = (val: string) => {
+    setMacroUrl(val);
+    localStorage.setItem('aura_macrodroid_url', val);
+  };
+
+  // Trigger MacroDroid physically on user's Android
+  const triggerMacroDroid = async (action: string, value: string = '', msg: string = '') => {
+    if (!macroUrl) return;
+    setIsTriggering(true);
+    setTriggerStatus('Enviando señal a tu Android...');
+    try {
+      // First try via local server endpoint
+      const res = await fetch('/api/phone/trigger-macrodroid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl: macroUrl, action, value, message: msg })
+      });
+      if (res.ok) {
+        setTriggerStatus('✅ Señal ejecutada en MacroDroid en tu móvil');
+      } else {
+        // Fallback direct GET from client
+        const url = new URL(macroUrl);
+        url.searchParams.set('action', action);
+        if (value) url.searchParams.set('value', value);
+        await fetch(url.toString(), { mode: 'no-cors' });
+        setTriggerStatus('✅ Señal enviada a tu dispositivo');
+      }
+    } catch {
+      // Direct GET fallback
+      try {
+        const url = new URL(macroUrl);
+        url.searchParams.set('action', action);
+        if (value) url.searchParams.set('value', value);
+        await fetch(url.toString(), { mode: 'no-cors' });
+        setTriggerStatus('✅ Señal enviada a tu dispositivo');
+      } catch (err) {
+        setTriggerStatus('⚠️ No se pudo contactar con MacroDroid');
+      }
+    } finally {
+      setIsTriggering(false);
+      setTimeout(() => setTriggerStatus(null), 3500);
+    }
+  };
 
   // Trigger web notification if browser permits
   const handleTriggerDeviceNotification = (title: string, body: string) => {
@@ -61,6 +111,9 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
         });
       }
     }
+
+    // Also trigger MacroDroid with notification text
+    triggerMacroDroid('notification', title, body);
 
     // Add to state notifications list
     const newNotif = {
@@ -419,51 +472,96 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
         </div>
       </div>
 
-      {/* 4. Guía de Automatización Real con MacroDroid / Tasker */}
-      <div className="bg-[#111318] rounded-2xl p-5 border border-indigo-500/20 shadow-md">
-        <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowMacroGuide(!showMacroGuide)}>
+      {/* 4. Guía y Conexión en Vivo con MacroDroid */}
+      <div className="bg-[#111318] rounded-2xl p-5 border border-indigo-500/30 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-300">
+            <div className="p-2.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400">
               <Wifi className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                Conexión en Vivo con tu Android (MacroDroid / Tasker / Webhooks)
+                Conexión en Vivo con MacroDroid (Android)
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                  Activa
+                </span>
               </h3>
               <p className="text-xs text-[#8490A0]">
-                Aprende a conectar Aura para que cambie el volumen y modos de tu teléfono físicamente
+                Dispara automatizaciones reales directamente en tu teléfono móvil
               </p>
             </div>
           </div>
-          <button className="text-xs text-indigo-400 font-semibold hover:underline">
-            {showMacroGuide ? 'Ocultar guía' : 'Ver cómo conectar'}
+          <button 
+            onClick={() => setShowMacroGuide(!showMacroGuide)} 
+            className="text-xs text-indigo-400 font-semibold hover:underline self-start sm:self-auto cursor-pointer"
+          >
+            {showMacroGuide ? 'Ocultar detalles' : 'Ver configuración'}
           </button>
         </div>
 
-        {showMacroGuide && (
-          <div className="mt-4 pt-4 border-t border-[#1F242F] text-xs text-[#C5CED9] space-y-3">
-            <p>
-              Puedes enlazar los comandos de Aura directamente con la aplicación gratuita <strong className="text-white">MacroDroid</strong> o <strong className="text-white">Tasker</strong> de Google Play:
-            </p>
-            <ol className="list-decimal list-inside space-y-1.5 text-[#AAB5C4]">
-              <li>Instala <strong className="text-white">MacroDroid</strong> en tu teléfono Android desde Google Play Store.</li>
-              <li>Crea una macro nueva con Disparador (Trigger): <strong className="text-white">Solicitud Webhook / HTTP</strong>.</li>
-              <li>Agrega Acciones en MacroDroid según el comando (ej: cambiar volumen, silenciar, encender linterna).</li>
-              <li>Aura enviará la petición automáticamente a tu dispositivo cuando des la orden por voz o botones.</li>
-            </ol>
-            <div className="p-3 bg-[#161922] rounded-xl border border-[#222834] flex items-center justify-between">
-              <div>
-                <div className="text-[11px] text-[#8490A0]">Endpoint local de sincronización:</div>
-                <div className="text-xs font-mono text-indigo-300 mt-0.5">{window.location.origin}/api/phone/webhook</div>
-              </div>
+        {/* URL Input & Quick Test */}
+        <div className="p-4 bg-[#161922] rounded-xl border border-[#222834] space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-[#C5CED9] block mb-1">
+              Tu URL Webhook de MacroDroid:
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={macroUrl}
+                onChange={(e) => handleSaveMacroUrl(e.target.value)}
+                placeholder="https://trigger.macrodroid.com/..."
+                className="flex-1 px-3 py-2 text-xs font-mono rounded-lg bg-[#0F1117] border border-[#2B3342] text-indigo-300 focus:outline-none focus:border-indigo-500"
+              />
               <button
-                onClick={handleCopyWebhookUrl}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors cursor-pointer"
+                onClick={() => triggerMacroDroid('aura_test', '1', 'Prueba desde Aura')}
+                disabled={isTriggering}
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap flex items-center gap-1.5"
               >
-                {copiedWebhook ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedWebhook ? 'Copiado' : 'Copiar'}</span>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{isTriggering ? 'Enviando...' : '⚡ Disparar Prueba'}</span>
               </button>
             </div>
+          </div>
+
+          {/* Quick Action Triggers */}
+          <div className="pt-1">
+            <div className="text-[11px] text-[#8490A0] mb-1.5">Probar comandos en tu Android:</div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Disparo General', action: 'aura_comando', val: 'general' },
+                { label: 'Alternar Linterna', action: 'flashlight', val: 'toggle' },
+                { label: 'Modo Silencio', action: 'dnd', val: 'toggle' },
+                { label: 'Subir Volumen', action: 'volume_up', val: '80' },
+              ].map((btn) => (
+                <button
+                  key={btn.action}
+                  onClick={() => triggerMacroDroid(btn.action, btn.val, `Comando ${btn.label}`)}
+                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-[#1E232E] hover:bg-[#282F3E] text-[#C5CED9] hover:text-white border border-[#2E3648] transition-colors cursor-pointer"
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Trigger Status Feedback */}
+          {triggerStatus && (
+            <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-xs font-medium text-indigo-300 animate-fadeIn">
+              {triggerStatus}
+            </div>
+          )}
+        </div>
+
+        {showMacroGuide && (
+          <div className="pt-2 text-xs text-[#AAB5C4] space-y-2 border-t border-[#1F242F]">
+            <p className="font-semibold text-white">¿Cómo configurar tu teléfono en MacroDroid?</p>
+            <ol className="list-decimal list-inside space-y-1 text-[#8490A0]">
+              <li>En la app <strong className="text-white">MacroDroid</strong>, crea una nueva Macro con Disparador (Trigger): <strong className="text-white">Webhook</strong>.</li>
+              <li>En Identificador pon: <strong className="text-indigo-300">aura_comando</strong>.</li>
+              <li>En Acciones (+), elige lo que quieras que haga tu móvil (ejemplo: cambiar volumen, silenciar, encender linterna, etc.).</li>
+              <li>Al pulsar los botones de Aura o dar órdenes por voz, tu teléfono reaccionará al instante.</li>
+            </ol>
           </div>
         )}
       </div>

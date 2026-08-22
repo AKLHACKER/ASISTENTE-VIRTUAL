@@ -39,6 +39,40 @@ app.post("/api/phone/webhook", (req, res) => {
   });
 });
 
+// Trigger external MacroDroid Webhook
+app.post("/api/phone/trigger-macrodroid", async (req, res) => {
+  try {
+    const { webhookUrl, action = "test", value = "", message = "" } = req.body || {};
+    const targetUrl = webhookUrl || "https://trigger.macrodroid.com/7e08d103-de70-4d66-a0a2-e67ed3a624fb/aura_comando";
+    
+    // Construct query parameters so MacroDroid can extract variables in the macro
+    const urlObj = new URL(targetUrl);
+    urlObj.searchParams.set("action", String(action));
+    if (value) urlObj.searchParams.set("value", String(value));
+    if (message) urlObj.searchParams.set("message", String(message));
+    urlObj.searchParams.set("timestamp", String(Date.now()));
+
+    console.log(`[Triggering MacroDroid]: ${urlObj.toString()}`);
+    const response = await fetch(urlObj.toString(), {
+      method: "GET",
+    });
+
+    const responseText = await response.text();
+    res.json({
+      status: "success",
+      macroDroidStatus: response.status,
+      response: responseText || "OK",
+      sentUrl: urlObj.toString()
+    });
+  } catch (err: any) {
+    console.error("[MacroDroid Trigger Error]:", err);
+    res.status(500).json({
+      status: "error",
+      error: err.message || "Failed to trigger MacroDroid"
+    });
+  }
+});
+
 // Chat & Command interpretation endpoint
 app.post("/api/assistant/chat", async (req, res) => {
   try {
