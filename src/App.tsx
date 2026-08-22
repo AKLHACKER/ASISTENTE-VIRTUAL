@@ -31,7 +31,7 @@ import {
 } from './data/initialState';
 import { SpeechHandler } from './utils/speech';
 import { processLocalAssistant } from './utils/localAssistant';
-import { detectDeviceModel, initRealBatteryListener } from './utils/deviceDetector';
+import { detectDeviceModel, getDetailedDeviceModel, initRealBatteryListener } from './utils/deviceDetector';
 import { Header } from './components/Header';
 import { AssistantView } from './components/AssistantView';
 import { TasksView } from './components/TasksView';
@@ -117,13 +117,20 @@ export default function App() {
 
   // Auto-detect real phone model & real battery/charging on device
   useEffect(() => {
-    // Detect device model name from hardware/browser
-    const realModel = detectDeviceModel();
-    if (realModel) {
-      setPhone((prev) => ({
-        ...prev,
-        model: prev.model && prev.model !== 'Google Pixel 8 Pro' ? prev.model : realModel,
-      }));
+    // Check if user set a custom name in localStorage, otherwise detect
+    const savedCustomName = localStorage.getItem('aura_phone_model_name');
+
+    if (savedCustomName) {
+      setPhone((prev) => ({ ...prev, model: savedCustomName }));
+    } else {
+      getDetailedDeviceModel().then((realModel) => {
+        if (realModel) {
+          setPhone((prev) => ({
+            ...prev,
+            model: realModel,
+          }));
+        }
+      });
     }
 
     // Subscribe to real battery level and charging events

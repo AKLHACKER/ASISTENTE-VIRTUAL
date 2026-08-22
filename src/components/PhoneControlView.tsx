@@ -148,9 +148,13 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
               <input
                 type="text"
                 value={phone.model}
-                onChange={(e) => onUpdatePhone({ model: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onUpdatePhone({ model: val });
+                  localStorage.setItem('aura_phone_model_name', val);
+                }}
                 className="text-lg font-bold text-white bg-transparent border-b border-transparent hover:border-[#3A4456] focus:border-indigo-500 focus:outline-none transition-colors"
-                title="Haz clic para renombrar tu modelo de teléfono"
+                title="Haz clic para escribir el nombre de tu teléfono"
               />
               <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-semibold border border-emerald-500/30">
                 Android Conectado
