@@ -27,6 +27,18 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", aiEnabled: Boolean(ai) });
 });
 
+// Phone Webhook for Android MacroDroid / Tasker integration
+app.post("/api/phone/webhook", (req, res) => {
+  const { action, battery, dnd, ringerMode, volume, trigger } = req.body || {};
+  console.log("[Android Webhook Received]:", req.body);
+  res.json({
+    status: "success",
+    message: "Android state synchronized successfully with Aura",
+    timestamp: new Date().toISOString(),
+    received: { action, battery, dnd, ringerMode, volume, trigger }
+  });
+});
+
 // Chat & Command interpretation endpoint
 app.post("/api/assistant/chat", async (req, res) => {
   try {

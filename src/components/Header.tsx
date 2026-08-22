@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
             <p className="text-xs text-[#8490A0] font-normal hidden sm:block">
-              Gestión de Tareas, Domótica y Teléfono
+              Asistente Personal de Productividad y Teléfono Android
             </p>
           </div>
         </div>
