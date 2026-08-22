@@ -1,0 +1,6 @@
+{
+  "name": "Aura - Asistente Virtual Inteligente",
+  "description": "Asistente virtual impulsado por IA para la gestión eficiente de tareas diarias, automatización del hogar inteligente y control del teléfono con comandos de voz personalizados.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
