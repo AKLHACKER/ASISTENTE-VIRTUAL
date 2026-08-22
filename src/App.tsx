@@ -248,6 +248,39 @@ export default function App() {
         ...(brightness !== undefined ? { brightness: Number(brightness) } : {}),
         ...(eyeComfort !== undefined ? { eyeComfort: Boolean(eyeComfort) } : {}),
       }));
+
+      // Automatically trigger MacroDroid webhook if configured
+      try {
+        const storedMacroUrl = localStorage.getItem('aura_macrodroid_url') || 'https://trigger.macrodroid.com/7e08d103-de70-4d66-a0a2-e67ed3a624fb/aura_comando';
+        if (storedMacroUrl) {
+          const actionName = brightness !== undefined ? 'brightness' 
+            : volumeLevel !== undefined ? 'volume'
+            : dnd !== undefined ? 'dnd'
+            : flashlight !== undefined ? 'flashlight'
+            : ringerMode !== undefined ? 'ringer_mode'
+            : 'phone_update';
+          const actionVal = brightness !== undefined ? String(brightness)
+            : volumeLevel !== undefined ? String(volumeLevel)
+            : dnd !== undefined ? (dnd ? 'on' : 'off')
+            : flashlight !== undefined ? (flashlight ? 'on' : 'off')
+            : ringerMode !== undefined ? String(ringerMode)
+            : '';
+
+          fetch('/api/phone/trigger-macrodroid', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              webhookUrl: storedMacroUrl,
+              action: actionName,
+              value: actionVal,
+              message: action.targetDescription || 'Comando de teléfono',
+            }),
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.warn('MacroDroid auto-trigger error:', err);
+      }
+
       return {
         type: 'phone',
         description: action.targetDescription || `Ajustes del teléfono sincronizados`,

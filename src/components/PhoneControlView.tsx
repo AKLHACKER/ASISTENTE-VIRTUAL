@@ -213,6 +213,7 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
                     if (navigator.vibrate && mode.id === 'vibrate') {
                       navigator.vibrate(200);
                     }
+                    triggerMacroDroid('ringer_mode', mode.id, `Modo de sonido cambiado a ${mode.label}`);
                   }}
                   className={`py-2 px-3 rounded-xl text-xs font-semibold flex flex-col items-center gap-1.5 transition-all border cursor-pointer ${
                     isSelected
@@ -240,7 +241,18 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
               min="0"
               max="100"
               value={phone.volumeLevel}
-              onChange={(e) => onUpdatePhone({ volumeLevel: Number(e.target.value) })}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                onUpdatePhone({ volumeLevel: val });
+              }}
+              onMouseUp={(e) => {
+                const val = Number((e.target as HTMLInputElement).value);
+                triggerMacroDroid('volume', String(val), `Ajustar volumen a ${val}%`);
+              }}
+              onTouchEnd={(e) => {
+                const val = Number((e.target as HTMLInputElement).value);
+                triggerMacroDroid('volume', String(val), `Ajustar volumen a ${val}%`);
+              }}
               className="w-full h-1.5 bg-[#181B24] rounded-lg appearance-none cursor-pointer accent-indigo-500"
             />
           </div>
@@ -255,7 +267,11 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
               </div>
             </div>
             <button
-              onClick={() => onUpdatePhone({ dnd: !phone.dnd })}
+              onClick={() => {
+                const nextDnd = !phone.dnd;
+                onUpdatePhone({ dnd: nextDnd });
+                triggerMacroDroid('dnd', nextDnd ? 'on' : 'off', nextDnd ? 'Activar No Molestar' : 'Desactivar No Molestar');
+              }}
               className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
                 phone.dnd ? 'bg-amber-500' : 'bg-[#2A3140]'
               }`}
@@ -289,7 +305,18 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
               min="10"
               max="100"
               value={phone.brightness}
-              onChange={(e) => onUpdatePhone({ brightness: Number(e.target.value) })}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                onUpdatePhone({ brightness: val });
+              }}
+              onMouseUp={(e) => {
+                const val = Number((e.target as HTMLInputElement).value);
+                triggerMacroDroid('brightness', String(val), `Ajustar brillo a ${val}%`);
+              }}
+              onTouchEnd={(e) => {
+                const val = Number((e.target as HTMLInputElement).value);
+                triggerMacroDroid('brightness', String(val), `Ajustar brillo a ${val}%`);
+              }}
               className="w-full h-1.5 bg-[#181B24] rounded-lg appearance-none cursor-pointer accent-amber-500"
             />
           </div>
@@ -297,7 +324,11 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
           <div className="grid grid-cols-2 gap-2">
             {/* Flashlight */}
             <button
-              onClick={() => onUpdatePhone({ flashlight: !phone.flashlight })}
+              onClick={() => {
+                const nextTorch = !phone.flashlight;
+                onUpdatePhone({ flashlight: nextTorch });
+                triggerMacroDroid('flashlight', nextTorch ? 'on' : 'off', nextTorch ? 'Encender linterna' : 'Apagar linterna');
+              }}
               className={`p-3 rounded-xl border flex items-center gap-2.5 text-left transition-colors cursor-pointer ${
                 phone.flashlight
                   ? 'bg-amber-500/15 border-amber-500/30 text-white'
@@ -313,7 +344,11 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
 
             {/* Eye Comfort / Night Shield */}
             <button
-              onClick={() => onUpdatePhone({ eyeComfort: !phone.eyeComfort })}
+              onClick={() => {
+                const nextEye = !phone.eyeComfort;
+                onUpdatePhone({ eyeComfort: nextEye });
+                triggerMacroDroid('eye_comfort', nextEye ? 'on' : 'off', nextEye ? 'Activar luz nocturna' : 'Desactivar luz nocturna');
+              }}
               className={`p-3 rounded-xl border flex items-center gap-2.5 text-left transition-colors cursor-pointer ${
                 phone.eyeComfort
                   ? 'bg-indigo-500/15 border-indigo-500/30 text-white'
