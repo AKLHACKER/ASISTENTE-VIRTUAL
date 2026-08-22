@@ -565,18 +565,18 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
 
           {/* Quick Action Triggers */}
           <div className="pt-1">
-            <div className="text-[11px] text-[#8490A0] mb-1.5">Probar comandos en tu Android:</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="text-[11px] text-[#8490A0] mb-1.5 font-medium">Probar tus 4 macros en el móvil:</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { label: 'Disparo General', action: 'aura_comando', val: 'general' },
-                { label: 'Alternar Linterna', action: 'flashlight', val: 'toggle' },
-                { label: 'Modo Silencio', action: 'dnd', val: 'toggle' },
-                { label: 'Subir Volumen', action: 'volume_up', val: '80' },
+                { label: '🔦 Probar Linterna', action: 'flashlight', val: 'on' },
+                { label: '☀️ Probar Brillo 80%', action: 'brightness', val: '80' },
+                { label: '🔊 Probar Volumen 70%', action: 'volume', val: '70' },
+                { label: '🌙 Probar Silencio (DND)', action: 'dnd', val: 'on' },
               ].map((btn) => (
                 <button
                   key={btn.action}
-                  onClick={() => triggerMacroDroid(btn.action, btn.val, `Comando ${btn.label}`)}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-[#1E232E] hover:bg-[#282F3E] text-[#C5CED9] hover:text-white border border-[#2E3648] transition-colors cursor-pointer"
+                  onClick={() => triggerMacroDroid(btn.action, btn.val, `Prueba de ${btn.label}`)}
+                  className="px-2.5 py-2 text-xs font-semibold rounded-lg bg-[#1E232E] hover:bg-indigo-600/30 text-[#C5CED9] hover:text-white border border-[#2E3648] hover:border-indigo-500/40 transition-colors cursor-pointer text-center"
                 >
                   {btn.label}
                 </button>

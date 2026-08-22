@@ -45,24 +45,59 @@ app.post("/api/phone/trigger-macrodroid", async (req, res) => {
     const { webhookUrl, action = "test", value = "", message = "" } = req.body || {};
     const targetUrl = webhookUrl || "https://trigger.macrodroid.com/7e08d103-de70-4d66-a0a2-e67ed3a624fb/aura_comando";
     
-    // Construct query parameters so MacroDroid can extract variables in the macro
-    const urlObj = new URL(targetUrl);
-    urlObj.searchParams.set("action", String(action));
-    if (value) urlObj.searchParams.set("value", String(value));
-    if (message) urlObj.searchParams.set("message", String(message));
-    urlObj.searchParams.set("timestamp", String(Date.now()));
+    const urlsToTrigger: string[] = [];
 
-    console.log(`[Triggering MacroDroid]: ${urlObj.toString()}`);
-    const response = await fetch(urlObj.toString(), {
-      method: "GET",
-    });
+    try {
+      const parsed = new URL(targetUrl);
+      if (parsed.hostname.includes("macrodroid.com")) {
+        const pathSegments = parsed.pathname.split("/").filter(Boolean);
+        if (pathSegments.length >= 1) {
+          const deviceId = pathSegments[0];
+          // Action-specific URL for 4 separate macros (e.g. /<device_id>/flashlight)
+          const actionUrl = new URL(`https://trigger.macrodroid.com/${deviceId}/${action}`);
+          actionUrl.searchParams.set("action", String(action));
+          if (value) actionUrl.searchParams.set("value", String(value));
+          if (message) actionUrl.searchParams.set("message", String(message));
+          actionUrl.searchParams.set("timestamp", String(Date.now()));
+          urlsToTrigger.push(actionUrl.toString());
 
-    const responseText = await response.text();
+          // Also trigger the configured path if it differs from the action name
+          if (pathSegments[1] && pathSegments[1] !== action) {
+            const configUrl = new URL(targetUrl);
+            configUrl.searchParams.set("action", String(action));
+            if (value) configUrl.searchParams.set("value", String(value));
+            if (message) configUrl.searchParams.set("message", String(message));
+            configUrl.searchParams.set("timestamp", String(Date.now()));
+            urlsToTrigger.push(configUrl.toString());
+          }
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    if (urlsToTrigger.length === 0) {
+      const urlObj = new URL(targetUrl);
+      urlObj.searchParams.set("action", String(action));
+      if (value) urlObj.searchParams.set("value", String(value));
+      if (message) urlObj.searchParams.set("message", String(message));
+      urlObj.searchParams.set("timestamp", String(Date.now()));
+      urlsToTrigger.push(urlObj.toString());
+    }
+
+    const results = await Promise.allSettled(
+      urlsToTrigger.map(async (url) => {
+        console.log(`[Triggering MacroDroid]: ${url}`);
+        const response = await fetch(url, { method: "GET" });
+        const text = await response.text();
+        return { url, status: response.status, text };
+      })
+    );
+
     res.json({
       status: "success",
-      macroDroidStatus: response.status,
-      response: responseText || "OK",
-      sentUrl: urlObj.toString()
+      results,
+      sentUrls: urlsToTrigger
     });
   } catch (err: any) {
     console.error("[MacroDroid Trigger Error]:", err);
