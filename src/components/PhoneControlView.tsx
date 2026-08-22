@@ -48,7 +48,12 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
   const [testNotificationText, setTestNotificationText] = useState('');
   const [showMacroGuide, setShowMacroGuide] = useState(true);
   const [macroUrl, setMacroUrl] = useState(() => {
-    return localStorage.getItem('aura_macrodroid_url') || 'https://trigger.macrodroid.com/7e08d103-de70-4d66-a0a2-e67ed3a624fb/aura_comando';
+    const saved = localStorage.getItem('aura_macrodroid_url');
+    if (saved && !saved.includes('aura_comando')) {
+      return saved;
+    }
+    // Clean base Device URL by default
+    return 'https://trigger.macrodroid.com/7e08d103-de70-4d66-a0a2-e67ed3a624fb';
   });
   const [triggerStatus, setTriggerStatus] = useState<string | null>(null);
   const [isTriggering, setIsTriggering] = useState(false);
@@ -59,38 +64,51 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
     localStorage.setItem('aura_macrodroid_url', val);
   };
 
-  // Trigger MacroDroid physically on user's Android
+  // Trigger MacroDroid physically on user's Android with exact function routing
   const triggerMacroDroid = async (action: string, value: string = '', msg: string = '') => {
     if (!macroUrl) return;
     setIsTriggering(true);
-    setTriggerStatus('Enviando señal a tu Android...');
+    setTriggerStatus(`Enviando orden (${action}) a tu Android...`);
+
+    // Clean base device ID URL (strip any old trailing /aura_comando or /flashlight)
+    let cleanBaseUrl = macroUrl.trim();
+    if (cleanBaseUrl.includes('trigger.macrodroid.com/')) {
+      const match = cleanBaseUrl.match(/trigger\.macrodroid\.com\/([a-zA-Z0-9\-]+)/);
+      if (match && match[1]) {
+        cleanBaseUrl = `https://trigger.macrodroid.com/${match[1]}`;
+      }
+    }
+
     try {
-      // First try via local server endpoint
+      // 1. Try via backend server router
       const res = await fetch('/api/phone/trigger-macrodroid', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ webhookUrl: macroUrl, action, value, message: msg })
+        body: JSON.stringify({ webhookUrl: cleanBaseUrl, action, value, message: msg })
       });
+
       if (res.ok) {
-        setTriggerStatus('✅ Señal ejecutada en MacroDroid en tu móvil');
+        setTriggerStatus(`✅ Orden ejecutada: [${action}] en tu móvil`);
       } else {
-        // Fallback direct GET from client
-        const url = new URL(macroUrl);
+        // Direct browser fallback to specific action endpoint
+        const targetDirectUrl = cleanBaseUrl.endsWith('/') ? `${cleanBaseUrl}${action}` : `${cleanBaseUrl}/${action}`;
+        const url = new URL(targetDirectUrl);
         url.searchParams.set('action', action);
         if (value) url.searchParams.set('value', value);
         await fetch(url.toString(), { mode: 'no-cors' });
-        setTriggerStatus('✅ Señal enviada a tu dispositivo');
+        setTriggerStatus(`✅ Orden enviada a [${action}] en tu móvil`);
       }
     } catch {
-      // Direct GET fallback
+      // Direct browser fallback
       try {
-        const url = new URL(macroUrl);
+        const targetDirectUrl = cleanBaseUrl.endsWith('/') ? `${cleanBaseUrl}${action}` : `${cleanBaseUrl}/${action}`;
+        const url = new URL(targetDirectUrl);
         url.searchParams.set('action', action);
         if (value) url.searchParams.set('value', value);
         await fetch(url.toString(), { mode: 'no-cors' });
-        setTriggerStatus('✅ Señal enviada a tu dispositivo');
+        setTriggerStatus(`✅ Orden enviada a [${action}] en tu móvil`);
       } catch (err) {
-        setTriggerStatus('⚠️ No se pudo contactar con MacroDroid');
+        setTriggerStatus('⚠️ Error al contactar con MacroDroid');
       }
     } finally {
       setIsTriggering(false);
@@ -594,13 +612,16 @@ export const PhoneControlView: React.FC<PhoneControlViewProps> = ({
 
         {showMacroGuide && (
           <div className="pt-2 text-xs text-[#AAB5C4] space-y-2 border-t border-[#1F242F]">
-            <p className="font-semibold text-white">¿Cómo configurar tu teléfono en MacroDroid?</p>
-            <ol className="list-decimal list-inside space-y-1 text-[#8490A0]">
-              <li>En la app <strong className="text-white">MacroDroid</strong>, crea una nueva Macro con Disparador (Trigger): <strong className="text-white">Webhook</strong>.</li>
-              <li>En Identificador pon: <strong className="text-indigo-300">aura_comando</strong>.</li>
-              <li>En Acciones (+), elige lo que quieras que haga tu móvil (ejemplo: cambiar volumen, silenciar, encender linterna, etc.).</li>
-              <li>Al pulsar los botones de Aura o dar órdenes por voz, tu teléfono reaccionará al instante.</li>
-            </ol>
+            <p className="font-semibold text-white">¿Cómo funcionan tus 4 Macros separadas?</p>
+            <p className="text-[#8490A0]">
+              Aura detecta automáticamente qué función tocas y le envía la orden exacta a su propia Macro:
+            </p>
+            <ul className="grid grid-cols-2 gap-2 text-[11px] text-[#AAB5C4] bg-[#0E1015] p-3 rounded-xl border border-[#1F242F]">
+              <li>🔦 <strong className="text-white">Linterna:</strong> dispara a <span className="text-indigo-300 font-mono">/flashlight</span></li>
+              <li>☀️ <strong className="text-white">Brillo:</strong> dispara a <span className="text-indigo-300 font-mono">/brightness</span></li>
+              <li>🔊 <strong className="text-white">Volumen:</strong> dispara a <span className="text-indigo-300 font-mono">/volume</span></li>
+              <li>🌙 <strong className="text-white">No Molestar:</strong> dispara a <span className="text-indigo-300 font-mono">/dnd</span></li>
+            </ul>
           </div>
         )}
       </div>
