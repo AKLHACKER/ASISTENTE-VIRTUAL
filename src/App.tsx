@@ -30,6 +30,7 @@ import {
   INITIAL_VOICE_COMMANDS 
 } from './data/initialState';
 import { SpeechHandler } from './utils/speech';
+import { processLocalAssistant } from './utils/localAssistant';
 import { Header } from './components/Header';
 import { AssistantView } from './components/AssistantView';
 import { TasksView } from './components/TasksView';
@@ -358,15 +359,35 @@ export default function App() {
         setStatus('idle');
       }
     } catch (err) {
-      console.error(err);
-      const errorMsg: ChatMessage = {
-        id: `msg-${Date.now()}-err`,
+      console.warn("Backend API no disponible (modo offline/estático), usando motor local:", err);
+      const localResult = processLocalAssistant(userText);
+      const executed: ExecutedAction[] = [];
+
+      if (Array.isArray(localResult.actions)) {
+        for (const act of localResult.actions) {
+          const result = executeAppAction(act);
+          executed.push(result);
+        }
+      }
+
+      const assistantMsg: ChatMessage = {
+        id: `msg-${Date.now()}-ai-local`,
         role: 'assistant',
-        content: 'He registrado tu comando y aplicado las comprobaciones del sistema.',
+        content: localResult.spokenResponse,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        executedActions: executed,
+        suggestions: localResult.suggestions,
       };
-      setMessages((prev) => [...prev, errorMsg]);
-      setStatus('idle');
+
+      setMessages((prev) => [...prev, assistantMsg]);
+
+      if (voiceEnabled && speechHandlerRef.current && localResult.spokenResponse) {
+        speechHandlerRef.current.speak(localResult.spokenResponse, () => {
+          setStatus('idle');
+        });
+      } else {
+        setStatus('idle');
+      }
     }
   };
 
